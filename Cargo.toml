@@ -11,4 +11,6 @@ reqwest = "*"
 tempdir = "0.3.7"
 tempfile = "3.2.0"
 error-chain = "0.12.4"
+flate2 = "*"
+tar = "*"
 tokio = { version = "1", features = ["full"] }
