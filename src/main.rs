@@ -65,7 +65,8 @@ async fn main() {
     let java_url = String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz");
     let apache_tomcat_url = String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.tar.gz");
     let scada_lts_url = String::from("https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war");
-    let default_tomcat_config = String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/docker/config/context.xml");
+    //let default_tomcat_config = String::from("https://raw.githubusercontent.com/SCADA-LTS/Scada-LTS/develop/docker/config/context.xml");
+    let default_tomcat_config = String::from("https://github.com/SCADA-LTS/installer/releases/download/rv0.0.1/context.xml");
     let get_connector_mysql = String::from("https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar");
     
     
@@ -73,7 +74,7 @@ async fn main() {
     //let mysql_5_7_x86 = String::from("https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.36-linux-glibc2.12-x86_64.tar.gz");
     //https://dev.mysql.com/doc/refman/5.7/en/windows-create-option-file.html
 
-    println!("Start inst Scada-LTS v0.0.2");
+    println!("Start inst v0.0.2 for Scada-LTS v2.6.10");
 
     //---
     println!("Get java");
@@ -99,7 +100,7 @@ async fn main() {
     
     //---
     println!("Get default tomcat config");
-    fetch_url(&get_connector_mysql, &CONTEXT_XML).await.unwrap();
+    fetch_url(&default_tomcat_config, &CONTEXT_XML).await.unwrap();
     let dir_cfg = format!("./{}/conf", &DIR_TOMCAT_UNCONPRESED);
     let args_sh_move_config_to_tomcat = vec!["-f","./context.xml",&dir_cfg];
     sh("mv", args_sh_move_config_to_tomcat).await.unwrap();
@@ -107,7 +108,7 @@ async fn main() {
 
     //---
     println!("Get library to connect mysql");
-    fetch_url(&default_tomcat_config, &MY_SQL_JAR_CONNECTOR).await.unwrap();
+    fetch_url(&get_connector_mysql, &MY_SQL_JAR_CONNECTOR).await.unwrap();
     let dir_lib = format!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
     let args_sh_move_con_mysql_to_tomcat = vec!["-f","./mysql_connector.jar",&dir_lib];
     sh("mv", args_sh_move_con_mysql_to_tomcat).await.unwrap();
@@ -118,26 +119,34 @@ async fn main() {
     let mut to_fetch: Vec<F> = Vec::new();
     to_fetch.push(
         F{
-            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/activation.jar"),
+            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/activation.jar"),
+            //url: String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/activation.jar"),
             file_name: String::from("activation.jar"),
         });
     to_fetch.push(    
         F{
-            url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
-            file_name:String::from("jaxb-api-2.4.0-b180830.0359.jar"),
+            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
+            //url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
+            file_name: String::from("jaxb-api-2.4.0-b180830.0359.jar"),
         });
     to_fetch.push(
         F{
-            url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-core-3.0.2.jar"),
-            file_name:String::from("jaxb-core-3.0.2.jar"),
+            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-core-3.0.2.jar"),
+            //url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-core-3.0.2.jar"),
+            file_name: String::from("jaxb-core-3.0.2.jar"),
         });
     to_fetch.push(
         F{
-            url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
-            file_name:String::from("jaxb-runtime-2.4.0-b180830.0438.jar"),
+            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
+            //url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
+            file_name: String::from("jaxb-runtime-2.4.0-b180830.0438.jar"),
         });
 
     fetch_and_move(to_fetch).await.unwrap();
+
+    //usuniecie dodakowych aplikacji menager itp
+    //wylaczenie portu 8005
+    println!("If you have installed and running mysql server on localhost:3603 with user root and password root and the scadalts database is set up then you can run the \"./start.sh\" program");
 
     //---
     println!("end");
