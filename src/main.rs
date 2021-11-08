@@ -39,13 +39,22 @@ async fn uncopresed_tar_gz(filename: &str) -> Result<()> {
     Ok(())
 }
 
-async fn sh(cmd: &str, args: Vec<&str>) -> Result<()>{
+async fn cmd(cmd: &str, args: Vec<&str>, dir: &str) -> Result<()>{
     let output: std::process::Output = Command::new(cmd)
         .args(args)
-        .current_dir("./")
+        .current_dir(dir)
         .output().await?;
     println!("stderr: {:?}", output.stderr);
     Ok(())
+}
+
+async fn _move(file_name: &str, to_dir: &str) {
+    if cfg!(target_os = "windows") {
+        cmd("move", vec![&file_name, &to_dir],"./").await.unwrap();
+    } else if cfg!(target_os = "linux") {
+        let args_sh_move = vec![ "-f", &file_name, &to_dir];
+        cmd("mv", args_sh_move,"./").await.unwrap();
+    }
 }
 
 async fn fetch_and_move(to_fetch:Vec<F>) -> Result<()>{
@@ -53,9 +62,7 @@ async fn fetch_and_move(to_fetch:Vec<F>) -> Result<()>{
         fetch_url(&f.url, &f.file_name).await.unwrap();
         let dir_lib = format!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
         let name = format!("./{}", &f.file_name);
-        let args = vec!["-f", &name, &dir_lib];
-        let mv = "mv";
-        sh(mv, args).await.unwrap();            
+        _move(&name, &dir_lib).await;
     }
     Ok(())
 }
@@ -95,23 +102,20 @@ async fn main() {
     //---
     println!("ScadaBR.war move to tomacat");
     let dir_webapps = format!("./{}/webapps", &DIR_TOMCAT_UNCONPRESED);
-    let args_sh_move_scada = vec!["-f", "./ScadaBR.war", &dir_webapps];
-    sh("mv", args_sh_move_scada).await.unwrap();
-    
+    _move("./ScadaBR.war", &dir_webapps).await;
+
     //---
     println!("Get default tomcat config");
     fetch_url(&default_tomcat_config, &CONTEXT_XML).await.unwrap();
     let dir_cfg = format!("./{}/conf", &DIR_TOMCAT_UNCONPRESED);
-    let args_sh_move_config_to_tomcat = vec!["-f","./context.xml",&dir_cfg];
-    sh("mv", args_sh_move_config_to_tomcat).await.unwrap();
-
+    _move("./context.xml", &dir_cfg).await;
 
     //---
     println!("Get library to connect mysql");
     fetch_url(&get_connector_mysql, &MY_SQL_JAR_CONNECTOR).await.unwrap();
     let dir_lib = format!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
-    let args_sh_move_con_mysql_to_tomcat = vec!["-f","./mysql_connector.jar",&dir_lib];
-    sh("mv", args_sh_move_con_mysql_to_tomcat).await.unwrap();
+    _move("./mysql_connector.jar", &dir_lib).await;
+
 
     
     //---
