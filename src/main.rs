@@ -6,20 +6,25 @@ use tokio::process::Command;
 use std::fs::File;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
-const JAVA_NAME_COMPRESSED: &str = "java.tar.gz";
-const APACHE_TOMCAT_NAME_COMPRESSED: &str = "tomcat.tar.gz";
-const SCADA_LTS_NAME: &str = "ScadaBR.war";
-const CONTEXT_XML: &str = "context.xml";
-
 const DIR_TOMCAT_UNCONPRESED:&str = "apache-tomcat-9.0.48";
-const MY_SQL_JAR_CONNECTOR:&str = "mysql_connector.jar";
-//const DIR_JAVA_UNCONPRESED:&str = "jdk-11.0.13+8";
 
-//Featch 
+//Featch
 struct F{
     url: String,
     file_name: String
+}
+
+//Featch and Uncopresed
+struct U{
+    f: F,
+    msg: String
+}
+
+//Featch and Move
+struct M{
+    f: F,
+    msg: String,
+    to_dir: String
 }
  
 async fn fetch_url(url: &str, file_name: &str) -> Result<()> {
@@ -31,9 +36,9 @@ async fn fetch_url(url: &str, file_name: &str) -> Result<()> {
     Ok(())
 }
 
-async fn uncopresed_tar_gz(filename: &str) -> Result<()> {
-    let tar = File::open(filename)?;
-    let dec = GzDecoder::new(tar);
+async fn uncopresed(filename: &str) -> Result<()> {
+    let file = File::open(filename)?;
+    let dec = GzDecoder::new(file);
     let mut a = Archive::new(dec);
     a.unpack(".")?;
     Ok(())
@@ -57,96 +62,145 @@ async fn _move(file_name: &str, to_dir: &str) {
     }
 }
 
-async fn fetch_and_move(to_fetch:Vec<F>) -> Result<()>{
-    for f in to_fetch {
-        fetch_url(&f.url, &f.file_name).await.unwrap();
-        let dir_lib = format!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
-        let name = format!("./{}", &f.file_name);
-        _move(&name, &dir_lib).await;
+async fn fetch_and_move(to_fetch:Vec<M>) -> Result<()>{
+    for m in to_fetch {
+        println!("{}",&m.msg);
+        fetch_url(&m.f.url, &m.f.file_name).await.unwrap();
+        _move(&m.f.file_name, &m.to_dir).await;
+    }
+    Ok(())
+}
+
+async fn fetch_and_uncopresed(to_fetch:Vec<U>) -> Result<()>{
+    for u in to_fetch {
+        println!("{}", &u.msg);
+        fetch_url(&u.f.url, &u.f.file_name).await.unwrap();
+        uncopresed(&u.f.file_name).await.unwrap();
     }
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
-    let java_url = String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz");
-    let apache_tomcat_url = String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.tar.gz");
-    let scada_lts_url = String::from("https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war");
-    //let default_tomcat_config = String::from("https://raw.githubusercontent.com/SCADA-LTS/Scada-LTS/develop/docker/config/context.xml");
-    let default_tomcat_config = String::from("https://github.com/SCADA-LTS/installer/releases/download/rv0.0.1/context.xml");
-    let get_connector_mysql = String::from("https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar");
-    
-    
+        
     //Embeded sql not now
     //let mysql_5_7_x86 = String::from("https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.36-linux-glibc2.12-x86_64.tar.gz");
     //https://dev.mysql.com/doc/refman/5.7/en/windows-create-option-file.html
 
-    println!("Start inst v0.0.2 for Scada-LTS v2.6.10");
+    println!("Start inst v0.3.0 for Scada-LTS v2.6.10");
 
     //---
-    println!("Get java");
-    fetch_url(&java_url, &JAVA_NAME_COMPRESSED).await.unwrap();
-    println!("Start unpacking");
-    uncopresed_tar_gz(&JAVA_NAME_COMPRESSED).await.unwrap();
+    let mut to_fetch_and_unpacking: Vec<U> = Vec::new();
+    if cfg!(target_os = "windows") {
+      to_fetch_and_unpacking.push(
+        U{
+            f: F{ 
+                  url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.13_8.zip"),
+                  file_name: String::from("java.tar.gz")
+               },
+            msg: String::from("Get java and unpacking")
+        });
+        to_fetch_and_unpacking.push(
+        U{
+            f: F{
+                  url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.zip"),
+                  file_name: String::from("tomcat.tar.gz"),
+                },
+            msg: String::from("Get tomcat and unpacking")
+        });
+    } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+        to_fetch_and_unpacking.push(
+            U{
+                f: F{ 
+                      url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz"),
+                      file_name: String::from("java.tar.gz")
+                   },
+                msg: String::from("Get java and unpacking")
+            });
+            to_fetch_and_unpacking.push(
+            U{
+                f: F{
+                      url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.tar.gz"),
+                      file_name: String::from("tomcat.tar.gz"),
+                    },
+                msg: String::from("Get tomcat and unpacking")
+            });
+    }
+    fetch_and_uncopresed(to_fetch_and_unpacking).await.unwrap();
 
+        
     //---
-    println!("Get apache-tomcat");
-    fetch_url(&apache_tomcat_url, &APACHE_TOMCAT_NAME_COMPRESSED).await.unwrap();
-    println!("Start unpacking");
-    uncopresed_tar_gz(&APACHE_TOMCAT_NAME_COMPRESSED).await.unwrap();
-
-    //---
-    println!("Get Scada-LTS");
-    fetch_url(&scada_lts_url, &SCADA_LTS_NAME).await.unwrap();
-
-    //---
-    println!("ScadaBR.war move to tomacat");
-    let dir_webapps = format!("./{}/webapps", &DIR_TOMCAT_UNCONPRESED);
-    _move("./ScadaBR.war", &dir_webapps).await;
-
-    //---
-    println!("Get default tomcat config");
-    fetch_url(&default_tomcat_config, &CONTEXT_XML).await.unwrap();
-    let dir_cfg = format!("./{}/conf", &DIR_TOMCAT_UNCONPRESED);
-    _move("./context.xml", &dir_cfg).await;
-
-    //---
-    println!("Get library to connect mysql");
-    fetch_url(&get_connector_mysql, &MY_SQL_JAR_CONNECTOR).await.unwrap();
-    let dir_lib = format!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
-    _move("./mysql_connector.jar", &dir_lib).await;
-
-
+    let mut to_fetch: Vec<M> = Vec::new();
     
-    //---
-    println!("Get library for extends tomcat");
-    let mut to_fetch: Vec<F> = Vec::new();
+    let dir_webapps = format!("./{}/webapps", &DIR_TOMCAT_UNCONPRESED);
+    let dir_cfg = format!("./{}/conf", &DIR_TOMCAT_UNCONPRESED);
+
     to_fetch.push(
-        F{
+    M{
+        f: F{
+            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war"),
+            file_name: String::from("ScadaBR.war")
+        },
+        msg: String::from("Get Scada-LTS - and move to tomcat as ScadaBR.war"),
+        to_dir: dir_webapps
+    });
+    to_fetch.push(
+    M{
+        f: F{
+            url: String::from("https://github.com/SCADA-LTS/installer/releases/download/rv0.0.1/context.xml"),
+            file_name: String::from("context.xml")
+        },
+        msg: String::from("Get config context.xml - and move to tomcat"),
+        to_dir: dir_cfg
+    });    
+    to_fetch.push(
+    M{
+        f: F{
+            url: String::from("https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar"),
+            file_name: String::from("mysql_connector.jar")
+        },
+        msg: String::from("Get lib - mysql-connector-java-5.1.49.jar - and move to tomcat"),
+        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+    });    
+    to_fetch.push(
+    M{
+        f: F{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/activation.jar"),
-            //url: String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/activation.jar"),
-            file_name: String::from("activation.jar"),
-        });
+            file_name: String::from("activation.jar")
+        },
+        msg: String::from("Get lib - activation.jar and move to tomcat"),
+        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+    });
     to_fetch.push(    
-        F{
+    M{
+        f: F{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
-            //url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
-            file_name: String::from("jaxb-api-2.4.0-b180830.0359.jar"),
-        });
+            file_name: String::from("jaxb-api-2.4.0-b180830.0359.jar")
+        },
+        msg: String::from("Get lib - jaxb-api-2.4.0-b180830.0359.jar and move to tomcat"),
+        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+    });
     to_fetch.push(
-        F{
+    M{
+        f: F{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-core-3.0.2.jar"),
-            //url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-core-3.0.2.jar"),
-            file_name: String::from("jaxb-core-3.0.2.jar"),
-        });
+            file_name: String::from("jaxb-core-3.0.2.jar")
+        },
+        msg: String::from("Get lib - jaxb-core-3.0.2.jar and move to tomcat"),
+        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+    });
     to_fetch.push(
-        F{
+    M{
+        f: F {
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
-            //url:String::from("https://github.com/SCADA-LTS/Scada-LTS/blob/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
-            file_name: String::from("jaxb-runtime-2.4.0-b180830.0438.jar"),
-        });
+            file_name: String::from("jaxb-runtime-2.4.0-b180830.0438.jar")
+        },
+        msg: String::from("Get lib - jaxb-runtime-2.4.0-b180830.0438.jar and move to tomcat"),
+        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+    });
 
     fetch_and_move(to_fetch).await.unwrap();
+    
 
     //usuniecie dodakowych aplikacji menager itp
     //wylaczenie portu 8005
