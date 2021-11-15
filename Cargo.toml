@@ -14,3 +14,6 @@ error-chain = "0.12.4"
 flate2 = "*"
 tar = "*"
 tokio = { version = "1", features = ["full"] }
+clap = "~2.33"
+rpassword = "5.0.1"
+quick-xml = "*"

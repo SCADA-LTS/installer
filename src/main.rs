@@ -1,28 +1,34 @@
-
 use tar::Archive;
-use std::io::Cursor;
+use std::{io::Cursor};
 use flate2::read::{GzDecoder};
 use tokio::process::Command;
 use std::fs::File;
+use clap::{App, Arg};
+use rpassword::read_password;
+use std::io::Write;
+use quick_xml::Writer;
+use quick_xml::Reader;
+use quick_xml::events::{Event, BytesEnd, BytesStart};
+use std::iter;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 const DIR_TOMCAT_UNCONPRESED:&str = "apache-tomcat-9.0.48";
 
 //Featch
-struct F{
+struct Featch{
     url: String,
     file_name: String
 }
 
 //Featch and Uncopresed
-struct U{
-    f: F,
+struct Uncopresed{
+    featch: Featch,
     msg: String
 }
 
 //Featch and Move
-struct M{
-    f: F,
+struct Move{
+    featch: Featch,
     msg: String,
     to_dir: String
 }
@@ -53,7 +59,7 @@ async fn cmd(cmd: &str, args: Vec<&str>, dir: &str) -> Result<()>{
     Ok(())
 }
 
-async fn _move(file_name: &str, to_dir: &str) {
+async fn move_file(file_name: &str, to_dir: &str) {
     if cfg!(target_os = "windows") {
         cmd("move", vec![&file_name, &to_dir],"./").await.unwrap();
     } else if cfg!(target_os = "linux") {
@@ -62,26 +68,76 @@ async fn _move(file_name: &str, to_dir: &str) {
     }
 }
 
-async fn fetch_and_move(to_fetch:Vec<M>) -> Result<()>{
+async fn fetch_and_move(to_fetch:Vec<Move>) -> Result<()>{
     for m in to_fetch {
         println!("{}",&m.msg);
-        fetch_url(&m.f.url, &m.f.file_name).await.unwrap();
-        _move(&m.f.file_name, &m.to_dir).await;
+        fetch_url(&m.featch.url, &m.featch.file_name).await.unwrap();
+        move_file(&m.featch.file_name, &m.to_dir).await;
     }
     Ok(())
 }
 
-async fn fetch_and_uncopresed(to_fetch:Vec<U>) -> Result<()>{
+async fn fetch_and_uncopresed(to_fetch:Vec<Uncopresed>) -> Result<()>{
     for u in to_fetch {
         println!("{}", &u.msg);
-        fetch_url(&u.f.url, &u.f.file_name).await.unwrap();
-        uncopresed(&u.f.file_name).await.unwrap();
+        fetch_url(&u.featch.url, &u.featch.file_name).await.unwrap();
+        uncopresed(&u.featch.file_name).await.unwrap();
     }
     Ok(())
 }
+
+async fn write_user_and_passwd_mysql(user:&str, passwd:&str) {
+    
+
+}
+
+
 
 #[tokio::main]
 async fn main() {
+
+    let matches = App::new("Installer Scada-LTS")
+                          .version(env!("CARGO_PKG_VERSION"))
+                          .author(env!("CARGO_PKG_AUTHORS"))
+                          .about("This is to prepare the environment to run Scada-LTS")
+                          .arg(Arg::with_name("mysql_user")
+                               .short("u")
+                               .long("mysql_user")
+                               .help("Setting the mysql user to be used by Scada-LTS \n to connect to the mysql server (default root)")
+                               .value_name("mysql_user")
+                               .required(false)
+                               .takes_value(true))
+                          .arg(Arg::with_name("mysql_password")
+                               .short("p")
+                               .long("mysql_paswd")
+                               .help("Setting the mysql password to be used by Scada-LTS \n to connect to the mysql server (default root)")
+                               .value_name("mysql_password")
+                               .required(false)
+                               .takes_value(true))
+                          .arg(Arg::with_name("ask_for_mysql_password")
+                               .short("a")
+                               .long("ask_for_mysql_paswd")
+                               .help("Ask for the mysql password to be used by Scada-LTS \n to connect to the mysql server")
+                            )
+                          .get_matches();
+
+    println!("Start inst v{} for Scada-LTS v2.6.10", &env!("CARGO_PKG_VERSION"));
+
+    let mysql_user = matches.value_of("mysql_user").unwrap_or("root");
+    let mysql_password = matches.value_of("mysql_password").unwrap_or("root");
+    let ask_for_mysql_password = matches.index_of("ask_for_mysql_password");
+    println!("MySql user: {}", mysql_user);
+    println!("MySql password: {}", mysql_password);
+    println!("MySql ask for mysql password: {:?}", ask_for_mysql_password);
+
+    if ask_for_mysql_password.is_some() {
+        print!("Type a password for MySql user:{} - password: ", mysql_user);
+        std::io::stdout().flush().unwrap();
+        let mysql_password = read_password().unwrap();
+        println!("The password is: '{}'", mysql_password);
+    }
+
+
         
     //Embeded sql not now
     //let mysql_5_7_x86 = String::from("https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.36-linux-glibc2.12-x86_64.tar.gz");
@@ -90,19 +146,19 @@ async fn main() {
     println!("Start inst v0.3.0 for Scada-LTS v2.6.10");
 
     //---
-    let mut to_fetch_and_unpacking: Vec<U> = Vec::new();
+    let mut to_fetch_and_unpacking: Vec<Uncopresed> = Vec::new();
     if cfg!(target_os = "windows") {
       to_fetch_and_unpacking.push(
-        U{
-            f: F{ 
+        Uncopresed{
+            featch: Featch{ 
                   url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.13_8.zip"),
                   file_name: String::from("java.tar.gz")
                },
             msg: String::from("Get java and unpacking")
         });
         to_fetch_and_unpacking.push(
-        U{
-            f: F{
+        Uncopresed{
+            featch: Featch{
                   url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.zip"),
                   file_name: String::from("tomcat.tar.gz"),
                 },
@@ -110,16 +166,16 @@ async fn main() {
         });
     } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         to_fetch_and_unpacking.push(
-            U{
-                f: F{ 
+            Uncopresed{
+                featch: Featch{ 
                       url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz"),
                       file_name: String::from("java.tar.gz")
                    },
                 msg: String::from("Get java and unpacking")
             });
             to_fetch_and_unpacking.push(
-            U{
-                f: F{
+            Uncopresed{
+                featch: Featch{
                       url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.tar.gz"),
                       file_name: String::from("tomcat.tar.gz"),
                     },
@@ -130,14 +186,14 @@ async fn main() {
 
         
     //---
-    let mut to_fetch: Vec<M> = Vec::new();
+    let mut to_fetch: Vec<Move> = Vec::new();
     
     let dir_webapps = format!("./{}/webapps", &DIR_TOMCAT_UNCONPRESED);
     let dir_cfg = format!("./{}/conf", &DIR_TOMCAT_UNCONPRESED);
 
     to_fetch.push(
-    M{
-        f: F{
+    Move{
+        featch: Featch{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war"),
             file_name: String::from("ScadaBR.war")
         },
@@ -145,8 +201,8 @@ async fn main() {
         to_dir: dir_webapps
     });
     to_fetch.push(
-    M{
-        f: F{
+    Move{
+        featch: Featch{
             url: String::from("https://github.com/SCADA-LTS/installer/releases/download/rv0.0.1/context.xml"),
             file_name: String::from("context.xml")
         },
@@ -154,8 +210,8 @@ async fn main() {
         to_dir: dir_cfg
     });    
     to_fetch.push(
-    M{
-        f: F{
+    Move{
+        featch: Featch{
             url: String::from("https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar"),
             file_name: String::from("mysql_connector.jar")
         },
@@ -163,8 +219,8 @@ async fn main() {
         to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
     });    
     to_fetch.push(
-    M{
-        f: F{
+    Move{
+        featch: Featch{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/activation.jar"),
             file_name: String::from("activation.jar")
         },
@@ -172,8 +228,8 @@ async fn main() {
         to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
     });
     to_fetch.push(    
-    M{
-        f: F{
+    Move{
+        featch: Featch{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
             file_name: String::from("jaxb-api-2.4.0-b180830.0359.jar")
         },
@@ -181,8 +237,8 @@ async fn main() {
         to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
     });
     to_fetch.push(
-    M{
-        f: F{
+    Move{
+        featch: Featch{
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-core-3.0.2.jar"),
             file_name: String::from("jaxb-core-3.0.2.jar")
         },
@@ -190,8 +246,8 @@ async fn main() {
         to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
     });
     to_fetch.push(
-    M{
-        f: F {
+    Move{
+        featch: Featch {
             url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
             file_name: String::from("jaxb-runtime-2.4.0-b180830.0438.jar")
         },
