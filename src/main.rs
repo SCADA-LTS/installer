@@ -4,7 +4,7 @@
 //
 
 use clap::{App, Arg};
-use flate2::read::GzDecoder;
+use flate2::read::{GzDecoder};
 use rpassword::read_password;
 use std::env;
 use std::fs;
@@ -14,6 +14,8 @@ use std::io::Write;
 use std::path::Path;
 use tar::Archive;
 use tokio::process::Command;
+use std::ffi::OsStr;
+use std::io;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 const DIR_TOMCAT_UNCONPRESED: &str = "apache-tomcat-9.0.48";
@@ -32,6 +34,12 @@ struct Featch {
     url: String,
     ///Save as `file_name`
     file_name: String,
+}
+
+/// Decoding type
+enum Decoder {
+    Zip,
+    Gz,
 }
 
 ///Featch and Move - Structure needed to take a file from the resource `url` and save it as `file_name` and move it to the specified directory - `to_dir`, and display the `msg` information
@@ -68,6 +76,59 @@ async fn fetch_url(url: &str, file_name: &str) -> Result<()> {
     Ok(())
 }
 
+async fn unzip(filename: &str) -> Result<()> {
+    
+    let fname = std::path::Path::new(filename);
+    let file = fs::File::open(&fname).unwrap();
+
+    let mut archive = zip::ZipArchive::new(file).unwrap();
+
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).unwrap();
+        let outpath = match file.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => continue,
+        };
+
+        {
+            let comment = file.comment();
+            if !comment.is_empty() {
+                println!("File {} comment: {}", i, comment);
+            }
+        }
+
+        if (&*file.name()).ends_with('/') {
+            println!("File {} extracted to \"{}\"", i, outpath.display());
+            fs::create_dir_all(&outpath).unwrap();
+        } else {
+            println!(
+                "File {} extracted to \"{}\" ({} bytes)",
+                i,
+                outpath.display(),
+                file.size()
+            );
+            if let Some(p) = outpath.parent() {
+                if !p.exists() {
+                    fs::create_dir_all(&p).unwrap();
+                }
+            }
+            let mut outfile = fs::File::create(&outpath).unwrap();
+            io::copy(&mut file, &mut outfile).unwrap();
+        }
+
+        // Get and Set permissions
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+
+            if let Some(mode) = file.unix_mode() {
+                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Extracting the file - `file_name`
 ///
 /// # Arguments
@@ -82,11 +143,19 @@ async fn fetch_url(url: &str, file_name: &str) -> Result<()> {
 ///
 /// uncopresed("tomcat.tar.gz");
 /// ```
-async fn uncopresed(filename: &str) -> Result<()> {
+async fn uncopresed(filename: &str, decoder: Decoder) -> Result<()> {
     let file = File::open(filename)?;
-    let dec = GzDecoder::new(file);
-    let mut a = Archive::new(dec);
-    a.unpack(".")?;
+    
+    match decoder {
+        Decoder::Gz => { 
+            let dec = GzDecoder::new(file);
+            let mut a = Archive::new(dec);
+            a.unpack(".")?;
+        },
+        Decoder::Zip => { 
+            unzip(filename).await.unwrap();
+        },
+    }
     Ok(())
 }
 
@@ -100,7 +169,7 @@ async fn uncopresed(filename: &str) -> Result<()> {
 ///
 /// # Examples
 ///
-/// ```
+///  ```
 /// // You can have rust code between fences inside the comments
 /// // If you pass --test to `rustdoc`, it will even test it for you!
 ///
@@ -133,6 +202,7 @@ async fn cmd(cmd: &str, args: Vec<&str>, dir: &str) -> Result<()> {
 /// ```
 async fn move_file(file_name: &str, to_dir: &str) {
     if cfg!(target_os = "windows") {
+        println!("move file-name: {}, to_dir: {}", &file_name, &to_dir);
         cmd("move", vec![&file_name, &to_dir], "./").await.unwrap();
     } else if cfg!(target_os = "linux") {
         let args_sh_move = vec!["-f", &file_name, &to_dir];
@@ -203,7 +273,15 @@ async fn fetch_and_uncopresed(to_fetch: Vec<Uncopresed>) -> Result<()> {
     for u in to_fetch {
         println!("{}", &u.msg);
         fetch_url(&u.featch.url, &u.featch.file_name).await.unwrap();
-        uncopresed(&u.featch.file_name).await.unwrap();
+        let exten = Path::new(&u.featch.file_name).extension().and_then(OsStr::to_str).unwrap();
+        
+        if exten == "zip" {
+            println!("uncomprese: zip extend: {}", exten);
+            uncopresed(&u.featch.file_name, Decoder::Zip).await.unwrap();
+        } else {
+            println!("uncomprese: gz extend: {}", exten);
+            uncopresed(&u.featch.file_name, Decoder::Gz).await.unwrap();
+        }
     }
     Ok(())
 }
@@ -360,14 +438,14 @@ async fn main() {
         to_fetch_and_unpacking.push(
         Uncopresed{
             featch: Featch{ url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.13_8.zip"),
-                            file_name: String::from("java.tar.gz")
+                            file_name: String::from("java.zip")
                           },
             msg: String::from("Get java and unpacking")
         });
         to_fetch_and_unpacking.push(
         Uncopresed{
             featch: Featch{ url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.zip"),
-                            file_name: String::from("tomcat.tar.gz"),
+                            file_name: String::from("tomcat.zip"),
                           },
             msg: String::from("Get tomcat and unpacking")
         });
