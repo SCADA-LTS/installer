@@ -13,7 +13,7 @@ use std::io::Cursor;
 use std::io::Write;
 use std::path::Path;
 use tar::Archive;
-use tokio::process::Command;
+//use tokio::process::Command;
 use std::ffi::OsStr;
 use std::io;
 
@@ -175,15 +175,36 @@ async fn uncopresed(filename: &str, decoder: Decoder) -> Result<()> {
 ///
 /// cmd("mv", vec!["-f", &file_name, &to_dir], "./");
 /// ```
-async fn cmd(cmd: &str, args: Vec<&str>, dir: &str) -> Result<()> {
-    let output: std::process::Output = Command::new(cmd)
-        .args(args)
-        .current_dir(dir)
-        .output()
-        .await?;
-    println!("stderr: {:?}", output.stderr);
-    Ok(())
-}
+// async fn cmd(cmd: &str, args: &str, dir: &str) -> Result<()> {
+
+//     let output = if cfg!(target_os = "windows") {
+//         Command::new("cmd")
+//                 .args([dir, cmd, args])
+//                 .output().await?;
+//     } else {
+//         Command::new("sh")
+//                 .arg("-c")
+//                 .arg(format!("{} {}", cmd, args))
+//                 .output().await?;
+//     };
+    
+
+//     // let output: std::process::Output = Command::new(cmd)
+//     //     .args(args)
+//     //     .current_dir(dir)
+//     //     .output()
+//     //     .await?;
+//     //println!("{:?}", output.stdout);
+//     Ok(())
+// }
+
+// async fn move(from: Path, to: Path) -> Result<()> {
+//     fs::rename(&from, &to).await?;
+//     Ok(())
+// }
+
+
+
 
 /// Move file to another directory
 ///
@@ -201,13 +222,20 @@ async fn cmd(cmd: &str, args: Vec<&str>, dir: &str) -> Result<()> {
 /// move_file("lib.o", "/");
 /// ```
 async fn move_file(file_name: &str, to_dir: &str) {
-    if cfg!(target_os = "windows") {
-        println!("move file-name: {}, to_dir: {}", &file_name, &to_dir);
-        cmd("move", vec![&file_name, &to_dir], "./").await.unwrap();
-    } else if cfg!(target_os = "linux") {
-        let args_sh_move = vec!["-f", &file_name, &to_dir];
-        cmd("mv", args_sh_move, "./").await.unwrap();
-    }
+
+    
+    let from = Path::new("./").join(&file_name);
+    let to = Path::new(&to_dir).join(&file_name);
+    println!("move file-name: {:?}, to_dir: {:?}", &from, &to);
+    fs::rename(&from, &to).unwrap();
+
+    // if cfg!(target_os = "windows") {
+    //     println!("move file-name: {}, to_dir: {}", &file_name, &to_dir);
+    //     cmd("move", &format!("{} {}", &file_name, &to_dir), "./").await.unwrap();
+    // } else if cfg!(target_os = "linux") {
+    //     let args_sh_move = format!( "-f {} {}", &file_name, &to_dir);
+    //     cmd("mv", &args_sh_move, "./").await.unwrap();
+    // }
 }
 
 /// Download and move
