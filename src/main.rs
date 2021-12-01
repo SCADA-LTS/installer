@@ -13,9 +13,10 @@ use std::io::Cursor;
 use std::io::Write;
 use std::path::Path;
 use tar::Archive;
-//use tokio::process::Command;
 use std::ffi::OsStr;
 use std::io;
+use const_format::formatcp;
+
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 const DIR_TOMCAT_UNCONPRESED: &str = "apache-tomcat-9.0.48";
@@ -25,15 +26,15 @@ struct Uncopresed {
     ///Structure needed to retrieve a file from resource `featch`
     featch: Featch,
     ///Display the `msg` information
-    msg: String,
+    msg: &'static str,
 }
 
 ///Featch - Structure needed to retrieve a file from resource `url` and save as `file_name`
 struct Featch {
     ///Retrive a file from resource `url`
-    url: String,
+    url: &'static str,
     ///Save as `file_name`
-    file_name: String,
+    file_name: &'static str,
 }
 
 /// Decoding type
@@ -47,9 +48,9 @@ struct Move {
     ///Structure needed to retrieve a file from resource `featch`
     featch: Featch,
     ///Display the `msg` information
-    msg: String,
+    msg: &'static str,
     ///Move it to the specified directory `to_dir`
-    to_dir: String,
+    to_dir: &'static str,
 }
 
 /// Featch file from `url` and save as `file_name`
@@ -423,33 +424,33 @@ async fn main() {
     if cfg!(target_os = "windows") {
         to_fetch_and_unpacking.push(
         Uncopresed{
-            featch: Featch{ url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.13_8.zip"),
-                            file_name: String::from("java.zip")
+            featch: Featch{ url: "https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.13_8.zip",
+                            file_name: "java.zip"
                           },
-            msg: String::from("Get java and unpacking")
+            msg: "Get java and unpacking"
         });
         to_fetch_and_unpacking.push(
         Uncopresed{
-            featch: Featch{ url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.zip"),
-                            file_name: String::from("tomcat.zip"),
+            featch: Featch{ url: "https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.zip",
+                            file_name: "tomcat.zip",
                           },
-            msg: String::from("Get tomcat and unpacking")
+            msg: "Get tomcat and unpacking"
         });
     } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         to_fetch_and_unpacking.push(
             Uncopresed{
-                featch: Featch{ url: String::from("https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz"),
-                                file_name: String::from("java.tar.gz")
+                featch: Featch{ url: "https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz",
+                                file_name: "java.tar.gz"
                               },
-                msg: String::from("Get java and unpacking")
+                msg: "Get java and unpacking"
             });
         to_fetch_and_unpacking.push(
             Uncopresed{
                 featch: Featch{
-                      url: String::from("https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.tar.gz"),
-                      file_name: String::from("tomcat.tar.gz"),
+                      url: "https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.48/bin/apache-tomcat-9.0.48.tar.gz",
+                      file_name: "tomcat.tar.gz",
                     },
-                msg: String::from("Get tomcat and unpacking")
+                msg: "Get tomcat and unpacking"
             });
     }
     fetch_and_uncopresed(to_fetch_and_unpacking).await.unwrap();
@@ -457,71 +458,58 @@ async fn main() {
     //---
     let mut to_fetch: Vec<Move> = Vec::new();
 
-    let dir_webapps = format!("./{}/webapps", &DIR_TOMCAT_UNCONPRESED);
-    //let dir_cfg = format!("./{}/conf", &DIR_TOMCAT_UNCONPRESED);
+    let dir_webapps = formatcp!("./{}/webapps", DIR_TOMCAT_UNCONPRESED);
+    let dir_lib = formatcp!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
 
     to_fetch.push(
     Move{
         featch: Featch{
-            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war"),
-            file_name: String::from("ScadaBR.war")
+            url: "https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war",
+            file_name: "ScadaBR.war"
         },
-        msg: String::from("Get Scada-LTS - and move to tomcat as ScadaBR.war"),
+        msg: "Get Scada-LTS - and move to tomcat as ScadaBR.war",
         to_dir: dir_webapps
     });
-    // to_fetch.push(
-    // Move{
-    //     featch: Featch{
-    //         url: String::from("https://github.com/SCADA-LTS/installer/releases/download/rv0.0.1/context.xml"),
-    //         file_name: String::from("context.xml")
-    //     },
-    //     msg: String::from("Get config context.xml - and move to tomcat"),
-    //     to_dir: dir_cfg
-    // });
     to_fetch.push(
     Move{
         featch: Featch{
-            url: String::from("https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar"),
-            file_name: String::from("mysql_connector.jar")
+            url: "https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.49/mysql-connector-java-5.1.49.jar",
+            file_name: "mysql_connector.jar"
         },
-        msg: String::from("Get lib - mysql-connector-java-5.1.49.jar - and move to tomcat"),
-        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+        msg: "Get lib - mysql-connector-java-5.1.49.jar - and move to tomcat",
+        to_dir: dir_lib
     });
     to_fetch.push(Move {
         featch: Featch {
-            url: String::from(
-                "https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/activation.jar",
-            ),
-            file_name: String::from("activation.jar"),
+            url: "https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/activation.jar",
+            file_name: "activation.jar",
         },
-        msg: String::from("Get lib - activation.jar and move to tomcat"),
-        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED),
+        msg: "Get lib - activation.jar and move to tomcat",
+        to_dir: dir_lib
     });
     to_fetch.push(Move{
-        featch: Featch{ url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar"),
-                        file_name: String::from("jaxb-api-2.4.0-b180830.0359.jar")
+        featch: Featch{ url: "https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-api-2.4.0-b180830.0359.jar",
+                        file_name: "jaxb-api-2.4.0-b180830.0359.jar"
                        },
-        msg: String::from("Get lib - jaxb-api-2.4.0-b180830.0359.jar and move to tomcat"),
-        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+        msg: "Get lib - jaxb-api-2.4.0-b180830.0359.jar and move to tomcat",
+        to_dir: dir_lib
     });
     to_fetch.push(Move {
         featch: Featch {
-            url: String::from(
-                "https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-core-3.0.2.jar",
-            ),
-            file_name: String::from("jaxb-core-3.0.2.jar"),
+            url: "https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-core-3.0.2.jar",
+            file_name: "jaxb-core-3.0.2.jar",
         },
-        msg: String::from("Get lib - jaxb-core-3.0.2.jar and move to tomcat"),
-        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED),
+        msg: "Get lib - jaxb-core-3.0.2.jar and move to tomcat",
+        to_dir: dir_lib
     });
     to_fetch.push(
     Move{
         featch: Featch {
-            url: String::from("https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar"),
-            file_name: String::from("jaxb-runtime-2.4.0-b180830.0438.jar")
+            url: "https://github.com/SCADA-LTS/Scada-LTS/raw/develop/tomcat/lib/jaxb-runtime-2.4.0-b180830.0438.jar",
+            file_name: "jaxb-runtime-2.4.0-b180830.0438.jar"
         },
-        msg: String::from("Get lib - jaxb-runtime-2.4.0-b180830.0438.jar and move to tomcat"),
-        to_dir: format!("./{}/lib", DIR_TOMCAT_UNCONPRESED)
+        msg: "Get lib - jaxb-runtime-2.4.0-b180830.0438.jar and move to tomcat",
+        to_dir: dir_lib
     });
 
     fetch_and_move(to_fetch).await.unwrap();
