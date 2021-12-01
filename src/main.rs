@@ -76,9 +76,23 @@ async fn fetch_url(url: &str, file_name: &str) -> Result<()> {
     Ok(())
 }
 
-async fn unzip(filename: &str) -> Result<()> {
+/// unzip 
+///
+/// # Arguments
+///
+/// * `file_name` - A String - to unzip
+///
+/// # Examples
+///
+/// ```
+/// // You can have rust code between fences inside the comments
+/// // If you pass --test to `rustdoc`, it will even test it for you!
+///
+/// unzip("java.zip");
+/// ```
+async fn unzip(file_name: &str) -> Result<()> {
     
-    let fname = std::path::Path::new(filename);
+    let fname = std::path::Path::new(file_name);
     let file = fs::File::open(&fname).unwrap();
 
     let mut archive = zip::ZipArchive::new(file).unwrap();
@@ -159,53 +173,6 @@ async fn uncopresed(filename: &str, decoder: Decoder) -> Result<()> {
     Ok(())
 }
 
-/// Execution of a command `cmd` with arguments `args` in the directory `dir`
-///
-/// # Arguments
-///
-/// * `cmd` - A String - command 
-/// * `args` - Vec<&str> - args
-/// * `dir` - &str - current dir
-///
-/// # Examples
-///
-///  ```
-/// // You can have rust code between fences inside the comments
-/// // If you pass --test to `rustdoc`, it will even test it for you!
-///
-/// cmd("mv", vec!["-f", &file_name, &to_dir], "./");
-/// ```
-// async fn cmd(cmd: &str, args: &str, dir: &str) -> Result<()> {
-
-//     let output = if cfg!(target_os = "windows") {
-//         Command::new("cmd")
-//                 .args([dir, cmd, args])
-//                 .output().await?;
-//     } else {
-//         Command::new("sh")
-//                 .arg("-c")
-//                 .arg(format!("{} {}", cmd, args))
-//                 .output().await?;
-//     };
-    
-
-//     // let output: std::process::Output = Command::new(cmd)
-//     //     .args(args)
-//     //     .current_dir(dir)
-//     //     .output()
-//     //     .await?;
-//     //println!("{:?}", output.stdout);
-//     Ok(())
-// }
-
-// async fn move(from: Path, to: Path) -> Result<()> {
-//     fs::rename(&from, &to).await?;
-//     Ok(())
-// }
-
-
-
-
 /// Move file to another directory
 ///
 /// # Arguments
@@ -222,20 +189,11 @@ async fn uncopresed(filename: &str, decoder: Decoder) -> Result<()> {
 /// move_file("lib.o", "/");
 /// ```
 async fn move_file(file_name: &str, to_dir: &str) {
-
     
     let from = Path::new("./").join(&file_name);
     let to = Path::new(&to_dir).join(&file_name);
     println!("move file-name: {:?}, to_dir: {:?}", &from, &to);
     fs::rename(&from, &to).unwrap();
-
-    // if cfg!(target_os = "windows") {
-    //     println!("move file-name: {}, to_dir: {}", &file_name, &to_dir);
-    //     cmd("move", &format!("{} {}", &file_name, &to_dir), "./").await.unwrap();
-    // } else if cfg!(target_os = "linux") {
-    //     let args_sh_move = format!( "-f {} {}", &file_name, &to_dir);
-    //     cmd("mv", &args_sh_move, "./").await.unwrap();
-    // }
 }
 
 /// Download and move
@@ -446,7 +404,7 @@ async fn main() {
     println!("Mysql host: {}", mysql_host);
     println!("Mysql port: {}", mysql_port);
     println!("Mysql database: {}", mysql_db);
-    //if ()
+
     println!("MySql ask for mysql password: {:?}", ask_for_mysql_password);
 
     if ask_for_mysql_password.is_some() {
