@@ -16,5 +16,5 @@ tar = "*"
 tokio = { version = "1", features = ["full"] }
 clap = "~2.33"
 rpassword = "5.0.1"
-#quick-xml = "*"
 zip = "0.5"
+const_format = "0.2"
