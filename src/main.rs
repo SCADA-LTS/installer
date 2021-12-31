@@ -415,11 +415,6 @@ async fn main() {
         println!("The password is: '{}'", mysql_password);
     }
 
-    //Embeded sql not now
-    //let mysql_5_7_x86 = String::from("https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.36-linux-glibc2.12-x86_64.tar.gz");
-    //https://dev.mysql.com/doc/refman/5.7/en/windows-create-option-file.html
-
-    //---
     let mut to_fetch_and_unpacking: Vec<Uncopresed> = Vec::new();
     if cfg!(target_os = "windows") {
         to_fetch_and_unpacking.push(
@@ -436,6 +431,13 @@ async fn main() {
                           },
             msg: "Get tomcat and unpacking"
         });
+        to_fetch_and_unpacking.push(
+            Uncopresed{
+                featch: Featch{ url: "https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.35-win32.zip",
+                                file_name: "my.zip",
+                              },
+                msg: "Get mysql and unpacking"
+            });
     } else if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
         to_fetch_and_unpacking.push(
             Uncopresed{
@@ -452,6 +454,14 @@ async fn main() {
                     },
                 msg: "Get tomcat and unpacking"
             });
+            to_fetch_and_unpacking.push(
+                Uncopresed{
+                    featch: Featch{
+                          url: "https://dev.mysql.com/get/Downloads/MySQL-5.7/mysql-5.7.36-linux-glibc2.12-x86_64.tar.gz",
+                          file_name: "my.tar.gz",
+                        },
+                    msg: "Get mysql and unpacking"
+                });
     }
     fetch_and_uncopresed(to_fetch_and_unpacking).await.unwrap();
 
