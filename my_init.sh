@@ -4,18 +4,22 @@
 ## gbylica@softq.pl, grzegorz.bylica@gmail.com
 ##
 
-
 export TARGET="./mysql-5.7.36-linux-glibc2.12-x86_64"
 export DATADIR="../mysql/data"
-export PORT=9797
+export MY_LNG="./share/english"
 export USER="root"
 
-chmod -R 750 $TARGET
-chmod -R 750 ./mysql
+
+rm -R ./mysql
+mkdir mysql 
+mkdir mysql/data
+
 
 cd $TARGET
 
-# start
+
+# initialize
 ./bin/mysqld --datadir $DATADIR \
- --bind-address=localhost \
- --port=$PORT 
+--initialize-insecure --user=$USER \
+--language=$MY_LNG
+
