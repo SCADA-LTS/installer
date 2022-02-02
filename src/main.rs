@@ -11,7 +11,7 @@ use std::env;
 use std::io::Write;
 use std::path::Path;
 use std::process;
-use tokio::time::{sleep, Duration};
+//use tokio::time::{sleep, Duration};
 
 use const_format::formatcp;
 
@@ -38,7 +38,7 @@ fn check_inst() {
 async fn main() {
 
     println!(
-        "Start inst v{} for Scada-LTS v2.6.11",
+        "Start inst v{} for Scada-LTS v2.6.12",
         &env!("CARGO_PKG_VERSION")
     );
 
@@ -192,6 +192,7 @@ async fn main() {
                     },
                     msg: "Get mysql shell and unpacking"
                 });
+
     }
     inst::fetch_and_uncopresed(to_fetch_and_unpacking)
         .await
@@ -204,10 +205,11 @@ async fn main() {
     let dir_lib = formatcp!("./{}/lib", DIR_TOMCAT_UNCONPRESED);
 
     //https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.10-rc1/Scada-LTS.war
+    //https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.11/ScadaBR.war
     to_fetch.push(
     Move{
         featch: Featch{
-            url: "https://github.com/SCADA-LTS/Scada-LTS/releases/download/v2.6.11/ScadaBR.war",
+            url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.0/ScadaBR.war",
             file_name: "ScadaBR.war"
         },
         msg: "Get Scada-LTS - and move to tomcat as ScadaBR.war",
@@ -256,22 +258,73 @@ async fn main() {
         to_dir: dir_lib
     });
 
-    inst::fetch_and_move(to_fetch).await.unwrap();
+
 
     //correct configuration
     //write_user_and_passwd_mysql(mysql_user, mysql_password).await.unwrap();
 
     //create configuration
     if it_is_not_default.is_none() {
+
+        to_fetch.push(
+            Move{
+                featch: Featch {
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.0/my_init.sh",
+                    file_name: "my_init.sh"
+                },
+                msg: "Get script - my_init.sh",
+                to_dir: "./"
+            });
+
+        to_fetch.push(
+            Move{
+                featch: Featch {
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.0/my.sh",
+                    file_name: "my.sh"
+                },
+                msg: "Get script - my.sh",
+                to_dir: "./"
+            });
+
+        to_fetch.push(
+            Move{
+                featch: Featch {
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.0/cdb.sh",
+                    file_name: "cdb.sh"
+                },
+                msg: "Get script - cdb.sh",
+                to_dir: "./"
+            });
+
+        to_fetch.push(
+            Move{
+                featch: Featch {
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.0/start.sh",
+                    file_name: "start.sh"
+                },
+                msg: "Get script - start.sh",
+                to_dir: "./"
+            });
+
+        inst::fetch_and_move(to_fetch).await.unwrap();
         inst::create_config_xml("root","","localhost","9797","scadalts",
             DIR_TOMCAT_UNCONPRESED,
         ).await.unwrap();
+        /*
         inst::sh("./my_init.sh").await;
         tokio::task::spawn_blocking(move || inst::sh("./my.sh")).await;
         //inst::sh("./my.sh").await;
         sleep(Duration::from_millis(2000)).await;
         inst::sh("./start.sh").await;
+         */
+
+        println!("\n Set chmod +x my_init.sh my.sh start.sh cdb.sh \n First run the my_chinit.sh script \
+        \n Then in another console run my.sh \
+        \n Then in another console run cdb.sh\
+        \n Then in the same console run start.sh");
     } else {
+
+        inst::fetch_and_move(to_fetch).await.unwrap();
         inst::create_config_xml(
             mysql_user,
             mysql_password,
@@ -285,6 +338,9 @@ async fn main() {
 
     }
     //TODO czy chcesz wystartowac aplikacje
+
+
+
     println!("Start in webrowser - http://localhost:8080/ScadaBR");
     //usuniecie dodakowych aplikacji menager itp
     //wylaczenie portu 8005

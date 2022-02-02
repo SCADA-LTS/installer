@@ -7,7 +7,7 @@ use tar::Archive;
 use std::ffi::OsStr;
 use std::io;
 use flate2::read::{GzDecoder};
-use std::process::{Command};
+//use std::process::{Command};
 
 //use std::process::Command;
 
@@ -332,22 +332,22 @@ pub async fn create_config_xml(mysql_user: &str, mysql_passwd: &str, host: &str,
     Ok(())
 }
 
-pub async fn sh(script: &str) {
-    println!("Start: {}", script);
-    Command::new("sh")
-        .arg("-c")
-        .arg(script)
-        .output()
-        .expect("failed to execute process");
-}
+// pub async fn sh(script: &str) {
+//     println!("Start: {}", script);
+//     Command::new("sh")
+//         .arg("-c")
+//         .arg(script)
+//         .output()
+//         .expect("failed to execute process");
+// }
 
-pub fn sh_n(script: &str) {
-    println!("Start: {}", script);
-    Command::new("sh")
-        .arg("-c")
-        .arg(script)
-        .output()
-        .expect("failed to execute process");
-}
+// pub fn sh_n(script: &str) {
+//     println!("Start: {}", script);
+//     Command::new("sh")
+//         .arg("-c")
+//         .arg(script)
+//         .output()
+//         .expect("failed to execute process");
+// }
 
 
