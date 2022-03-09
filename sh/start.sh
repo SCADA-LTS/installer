@@ -1,4 +1,11 @@
 #!/bin/bash
+chmod +x ./my_init.sh my.sh cdb.sh
+./my_init.sh &
+sleep 5
+./my.sh &
+sleep 5
+./cdb.sh &
+
 export CURRENT_DIR=`pwd`
 export JAVA_HOME=$CURRENT_DIR/jdk-11.0.13+8
 export PATH=$PATH:$JAVA_HOME/bin
