@@ -51,6 +51,42 @@ async fn main() {
     println!("Internal java 1.11");
 
     let mut to_fetch_and_unpacking: Vec<Uncopresed> = Vec::new();
+
+    if cfg!(target_os = "windows") {
+    to_fetch_and_unpacking.push(
+    Uncopresed{
+        featch: Featch{ url: "https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x86-32_windows_hotspot_11.0.13_8.zip",
+                        file_name: "java.zip"
+                      },
+        msg: "Get java and unpacking"
+    });
+    to_fetch_and_unpacking.push(
+    Uncopresed{
+        featch: Featch{ url: "https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.56/bin/apache-tomcat-9.0.56.zip",
+                        file_name: "tomcat.zip",
+                      },
+        msg: "Get tomcat and unpacking"
+    });
+    to_fetch_and_unpacking.push(Uncopresed {
+        featch: Featch {
+            url: "https://downloads.mysql.com/archives/get/p/23/file/mysql-5.7.35-win64.zip",
+            file_name: "my.zip",
+        },
+        msg: "Get mysql and unpacking",
+    });
+ 
+    to_fetch_and_unpacking.push(
+            Uncopresed{
+                featch: Featch{
+                      url: "https://downloads.mysql.com/archives/get/p/43/file/mysql-shell-1.0.11-windows-x86-64bit.zip",
+                      file_name: "myshell.zip",
+                },
+                msg: "Get mysql shell and unpacking"
+            });
+
+    } else {
+
+    
     to_fetch_and_unpacking.push(
         Uncopresed{
             featch: Featch{ url: "https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.13%2B8/OpenJDK11U-jdk_x64_linux_hotspot_11.0.13_8.tar.gz",
@@ -83,6 +119,7 @@ async fn main() {
                 },
                 msg: "Get mysql shell and unpacking"
             });
+    }
 
     inst::fetch_and_uncopresed(to_fetch_and_unpacking)
       .await
@@ -97,7 +134,7 @@ async fn main() {
     to_fetch.push(
     Move{
         featch: Featch{
-            url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.1/ScadaBR.war",
+            url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/ScadaBR.war",
             file_name: "ScadaBR.war"
         },
         msg: "Get Scada-LTS - and move to tomcat as ScadaBR.war",
@@ -146,11 +183,76 @@ async fn main() {
         to_dir: dir_lib
     });
 
-    //create configuration
+    if cfg!(target_os = "windows") {
+
+        to_fetch.push(
+        Move{
+            featch: Featch {
+                url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/my_init.bat",
+                file_name: "my_init.sh"
+            },
+            msg: "Get script - my_init.bat",
+            to_dir: "./"
+        });
+
+    to_fetch.push(
+        Move{
+            featch: Featch {
+                url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/my.bat",
+                file_name: "my.sh"
+            },
+            msg: "Get script - my.bat",
+            to_dir: "./"
+        });
+
+    to_fetch.push(
+        Move{
+            featch: Featch {
+                url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/cdb.bat",
+                file_name: "cdb.sh"
+            },
+            msg: "Get script - cdb.bat",
+            to_dir: "./"
+        });
+
+    to_fetch.push(
+        Move{
+            featch: Featch {
+                url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/start.bat",
+                file_name: "start.bat"
+            },
+            msg: "Get script - start.bat",
+            to_dir: "./"
+        });
+
+
+
+
+        inst::fetch_and_move(to_fetch).await.unwrap();
+        inst::create_config_xml("root","","localhost","9797","scadalts",
+            DIR_TOMCAT_UNCONPRESED,
+        ).await.unwrap();
+
+        
+    
+
+        // let output = Command::new("sh")
+        //     .arg("-c")
+        //     .arg("chmod +x ./start.sh")
+        //     .output()
+        //     .expect("failed to execute process");
+        //     let startsh = output.stdout;
+    
+        //    println!("{:?}",startsh.to_owned());
+
+
+            print!(" Run on command line in the current directory ./start.bat ");
+            println!("Then start in webrowser - http://localhost:8080/ScadaBR");
+    } else {
     to_fetch.push(
             Move{
                 featch: Featch {
-                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.1/my_init.sh",
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/my_init.sh",
                     file_name: "my_init.sh"
                 },
                 msg: "Get script - my_init.sh",
@@ -160,7 +262,7 @@ async fn main() {
         to_fetch.push(
             Move{
                 featch: Featch {
-                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.1/my.sh",
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/my.sh",
                     file_name: "my.sh"
                 },
                 msg: "Get script - my.sh",
@@ -170,7 +272,7 @@ async fn main() {
         to_fetch.push(
             Move{
                 featch: Featch {
-                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.1/cdb.sh",
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/cdb.sh",
                     file_name: "cdb.sh"
                 },
                 msg: "Get script - cdb.sh",
@@ -180,12 +282,13 @@ async fn main() {
         to_fetch.push(
             Move{
                 featch: Featch {
-                    url: "https://github.com/SCADA-LTS/installer/releases/download/v0.5.1/start.sh",
+                    url: "https://github.com/SCADA-LTS/installer/releases/download/resource_2613/start.sh",
                     file_name: "start.sh"
                 },
                 msg: "Get script - start.sh",
                 to_dir: "./"
             });
+        
 
         inst::fetch_and_move(to_fetch).await.unwrap();
         inst::create_config_xml("root","","localhost","9797","scadalts",
@@ -205,4 +308,5 @@ async fn main() {
 
             print!(" Run on command line in the current directory ./start.sh ");
             println!("Then start in webrowser - http://localhost:8080/ScadaBR");
+    }
 }
