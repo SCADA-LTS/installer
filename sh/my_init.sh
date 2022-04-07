@@ -11,11 +11,12 @@ export USER="root"
 export MySQL_INTERNAL_SCADA_LTS_LONG=`pwd`/mysql/log/logs.err
 
 
-if [ -d "./mysql " ]
+if [ -d "./mysql" ]
   then 
     echo "The data for the internal mysql database is probably initialised"
     exit 0
   else 
+    echo "Start initial data for mysql"
     # rm -R ./mysql
     mkdir mysql 
     mkdir mysql/data
