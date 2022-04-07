@@ -15,7 +15,8 @@ export MY_LNG="./share/english"
 if netstat -an | grep ':9797' | grep -q -v '127.0.0.1\|::1'
   then 
     echo "the internal mysql is running"
-    exit 0
+    # exit 0
+    kill -9 $(lsoft -t -i tcp:9797)
 fi
 
 chmod -R 766 $TARGET

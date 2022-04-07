@@ -13,6 +13,12 @@ export CATALINA_HOME="`pwd`/apache-tomcat-9.0.56"
 echo $PATH
 echo $CATALINA_HOME
 
+if netstat -an | grep ':8080' | grep -q -v '127.0.0.1\|::1'
+  then 
+    echo "the internal scadalts is running"
+    exit 0
+fi
+
 cd ./apache-tomcat-9.0.56
 
 ./bin/catalina.sh start; tail -fn 100 ./logs/catalina.out

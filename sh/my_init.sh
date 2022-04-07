@@ -20,7 +20,9 @@ fi
 rm -R ./mysql
 mkdir mysql 
 mkdir mysql/data
+mkdir mysql/log
 
+touch $MySQL_INTERNAL_SCADA_LTS_LONG
 echo $MySQL_INTERNAL_SCADA_LTS_LONG
 echo $DATADIR
 
