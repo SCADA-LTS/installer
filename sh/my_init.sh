@@ -11,27 +11,29 @@ export USER="root"
 export MySQL_INTERNAL_SCADA_LTS_LONG=`pwd`/mysql/log/logs.err
 
 
-if [ -d "./mysql "]
+if [ -d "./mysql " ]
   then 
     echo "The data for the internal mysql database is probably initialised"
     exit 0
+  else 
+    # rm -R ./mysql
+    mkdir mysql 
+    mkdir mysql/data
+    mkdir mysql/log
+
+    touch $MySQL_INTERNAL_SCADA_LTS_LONG
+    echo $MySQL_INTERNAL_SCADA_LTS_LONG
+    echo $DATADIR
+
+    cd $TARGET
+
+    # initialize
+    ./bin/mysqld --datadir $DATADIR \
+    --initialize-insecure --user=$USER \
+    --language=$MY_LNG \
+    --log-error=$MySQL_INTERNAL_SCADA_LTS_LONG \
+    --lc-messages=en_US
+
 fi
 
-rm -R ./mysql
-mkdir mysql 
-mkdir mysql/data
-mkdir mysql/log
-
-touch $MySQL_INTERNAL_SCADA_LTS_LONG
-echo $MySQL_INTERNAL_SCADA_LTS_LONG
-echo $DATADIR
-
-cd $TARGET
-
-# initialize
-./bin/mysqld --datadir $DATADIR \
---initialize-insecure --user=$USER \
---language=$MY_LNG \
---log-error=$MySQL_INTERNAL_SCADA_LTS_LONG \
---lc-messages=en_US
 
