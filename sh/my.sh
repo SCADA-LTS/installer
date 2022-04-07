@@ -12,12 +12,14 @@ export USER="root"
 export MySQL_INTERNAL_SCADA_LTS_LONG=`pwd`/mysql/log/logs.err
 export MY_LNG="./share/english"
 
-if netstat -an | grep ':9797' | grep -q -v '127.0.0.1\|::1'
+export check_port=`netstat -an | grep ':9797' | wc -l`
+
+echo "number of open mysql ports: $check_port"
+
+# netstat -an | grep ':9797' | grep -q -v '127.0.0.1\|::1'
+
+if ((check_port == 0));
   then 
-    echo "the internal mysql is running"
-    exit 0
-    # kill -9 $(lsoft -t -i tcp:9797)
-  else 
     echo "start mysql"
     chmod -R 766 $TARGET
     chmod -R 766 ./mysql
@@ -34,6 +36,12 @@ if netstat -an | grep ':9797' | grep -q -v '127.0.0.1\|::1'
     --language=$MY_LNG \
     --log-error=$MySQL_INTERNAL_SCADA_LTS_LONG \
     --lc-messages=en_US
+
+  else 
+    echo "the internal mysql is started"
+    exit 0
+    # kill -9 $(lsoft -t -i tcp:9797)
+    
   
 fi
 
