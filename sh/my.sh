@@ -33,10 +33,6 @@ if netstat -an | grep ':9797' | grep -q -v '127.0.0.1\|::1'
     --language=$MY_LNG \
     --log-error=$MySQL_INTERNAL_SCADA_LTS_LONG \
     --lc-messages=en_US
-
-    #create db
-    sleep 5
-    ./cdb.sh &
   
 fi
 
